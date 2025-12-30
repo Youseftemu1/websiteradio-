@@ -216,19 +216,34 @@
 
 @media (max-width: 768px) {
     .stations-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 12px;
     }
 
     .station-card {
-        padding: 15px;
+        padding: 12px;
     }
 
     .station-title {
-        font-size: 16px;
+        font-size: 14px;
     }
 
     .station-artist {
-        font-size: 12px;
+        font-size: 11px;
+    }
+
+    .playing-indicator {
+        padding: 5px 8px;
+        bottom: 5px;
+        right: 5px;
+    }
+
+    .sound-wave {
+        height: 12px;
+    }
+
+    .record-btn {
+        padding: 8px;
+        font-size: 16px;
     }
 }

@@ -352,37 +352,75 @@ body {
 
 @media (max-width: 768px) {
     .app-header {
-        padding: 20px 15px;
+        padding: 15px 10px;
     }
 
     .app-title {
+        font-size: 24px;
+        gap: 8px;
+    }
+
+    .app-title .icon {
         font-size: 28px;
     }
 
     .header-subtitle {
-        font-size: 14px;
+        font-size: 12px;
     }
 
     .app-nav {
         gap: 5px;
-        padding: 15px 10px;
+        padding: 10px 5px;
+        top: 86px;
+        /* Adjusted for smaller header */
     }
 
     .nav-btn {
-        padding: 12px 20px;
-        font-size: 14px;
+        padding: 10px 15px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+
+    .app-main {
+        padding: 10px;
     }
 
     .player-bar {
-        padding: 15px;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .player-image {
+        width: 45px;
+        height: 45px;
+    }
+
+    .player-title {
+        font-size: 14px;
+    }
+
+    .player-artist {
+        font-size: 12px;
+    }
+
+    .control-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .recording-timer {
+        padding: 5px 12px;
+        font-size: 13px;
     }
 
     .volume-slider {
-        width: 100px;
+        width: 70px;
     }
 
     .app {
-        padding-bottom: 180px;
+        padding-bottom: 220px;
+        /* More space for wrapped player bar */
     }
 }
 

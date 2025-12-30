@@ -146,21 +146,59 @@
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
+.recording-meta-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.source-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.source-tag.cloud {
+    background: rgba(102, 126, 234, 0.2);
+    color: #a5b4fc;
+}
+
+.source-tag.local {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+}
+
 .recording-size {
-    text-align: right;
     color: rgba(255, 255, 255, 0.5);
     font-size: 12px;
-    margin-top: 5px;
 }
 
 @media (max-width: 768px) {
     .recording-header {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
+    }
+
+    .recording-card {
+        padding: 15px;
+    }
+
+    .recording-station h3 {
+        font-size: 18px;
     }
 
     .action-btn {
-        font-size: 18px;
-        padding: 10px;
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    .recording-duration {
+        padding: 3px 10px;
+        font-size: 12px;
     }
 }
