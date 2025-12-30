@@ -1,3 +1,6 @@
+import path from 'path';
+import axios from 'axios';
+import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import process from 'process';
 import { systemSchedules } from '../src/data/systemSchedules.js';

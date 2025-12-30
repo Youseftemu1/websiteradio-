@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { getAllRecordings, deleteRecording, getStorageUsage } from '../utils/StorageManager';
 import { formatBytes, formatDuration, formatDate, getDownloadFilename } from '../utils/formatters';
 import { saveAs } from 'file-saver';
