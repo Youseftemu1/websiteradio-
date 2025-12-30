@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
 import { getAllRecordings, deleteRecording, getStorageUsage } from '../utils/StorageManager';
 import { formatBytes, formatDuration, formatDate, getDownloadFilename } from '../utils/formatters';
 import { saveAs } from 'file-saver';
+import { supabase } from '../utils/supabaseClient';
 import './RecordingsList.css';
 
 const RecordingsList = ({ refreshTrigger }) => {
@@ -14,22 +14,60 @@ const RecordingsList = ({ refreshTrigger }) => {
     }, [refreshTrigger]);
 
     const loadRecordings = async () => {
-        const recs = await getAllRecordings();
-        setRecordings(recs.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        // 1. Load Local Recordings (IndexedDB)
+        const localRecs = await getAllRecordings();
+        const formattedLocal = localRecs.map(rec => ({
+            ...rec,
+            isCloud: false,
+            displayDate: rec.date
+        }));
+
+        // 2. Load Cloud Recordings (Supabase)
+        let cloudRecs = [];
+        try {
+            const { data, error } = await supabase
+                .from('recordings')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                cloudRecs = data.map(rec => ({
+                    id: rec.id,
+                    stationName: rec.station_name,
+                    date: rec.created_at,
+                    displayDate: rec.created_at,
+                    duration: rec.duration,
+                    size: rec.size,
+                    url: rec.url,
+                    isCloud: true
+                }));
+            }
+        } catch (err) {
+            console.error('Supabase fetch error:', err);
+        }
+
+        const allRecs = [...formattedLocal, ...cloudRecs].sort((a, b) => new Date(b.date) - new Date(a.date));
+        setRecordings(allRecs);
 
         const usage = await getStorageUsage();
         setStorageUsed(usage);
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (recording) => {
         if (confirm('Delete this recording?')) {
             try {
-                await deleteRecording(Number(id)); // Ensure ID is a number for IndexedDB
+                if (recording.isCloud) {
+                    // Delete from Supabase
+                    const filename = recording.url.split('/').pop();
+                    await supabase.storage.from('recordings').remove([filename]);
+                    await supabase.from('recordings').delete().eq('id', recording.id);
+                } else {
+                    // Delete from IndexedDB
+                    await deleteRecording(Number(recording.id));
+                }
                 loadRecordings();
             } catch (error) {
                 console.error('Failed to delete recording:', error);
-                // Try as string if number fails
-                await deleteRecording(id);
                 loadRecordings();
             }
         }
@@ -37,7 +75,11 @@ const RecordingsList = ({ refreshTrigger }) => {
 
     const handleDownload = (recording) => {
         const filename = getDownloadFilename(recording.stationName, recording.date);
-        saveAs(recording.blob, filename);
+        if (recording.isCloud) {
+            saveAs(recording.url, filename);
+        } else {
+            saveAs(recording.blob, filename);
+        }
     };
 
     const handlePlay = (id) => {
@@ -80,7 +122,7 @@ const RecordingsList = ({ refreshTrigger }) => {
                                     <audio
                                         controls
                                         autoPlay
-                                        src={URL.createObjectURL(recording.blob)}
+                                        src={recording.isCloud ? recording.url : URL.createObjectURL(recording.blob)}
                                         className="audio-element"
                                     />
                                 </div>
@@ -103,15 +145,20 @@ const RecordingsList = ({ refreshTrigger }) => {
                                 </button>
                                 <button
                                     className="action-btn delete-btn"
-                                    onClick={() => handleDelete(recording.id)}
+                                    onClick={() => handleDelete(recording)}
                                     title="Delete"
                                 >
                                     🗑️
                                 </button>
                             </div>
 
-                            <div className="recording-size">
-                                {formatBytes(recording.size)}
+                            <div className="recording-meta-footer">
+                                <span className={`source-tag ${recording.isCloud ? 'cloud' : 'local'}`}>
+                                    {recording.isCloud ? '☁️ Cloud' : '💻 Local'}
+                                </span>
+                                <span className="recording-size">
+                                    {formatBytes(recording.size)}
+                                </span>
                             </div>
                         </div>
                     ))}
