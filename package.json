@@ -13,6 +13,8 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
+    "axios": "^1.13.2",
     "cron-parser": "^5.4.0",
     "date-fns": "^4.1.0",
     "express": "^5.2.1",
