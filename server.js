@@ -19,8 +19,8 @@ const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
 
-    // Handle SPA routing - send all requests to index.html
-    app.get('/:any*', (req, res) => {
+    // Handle SPA routing - any request that reaches here gets sent to index.html
+    app.use((req, res) => {
         res.sendFile(path.join(distPath, 'index.html'));
     });
 } else {
