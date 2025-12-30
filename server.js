@@ -20,7 +20,7 @@ if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
 
     // Handle SPA routing - send all requests to index.html
-    app.get('/(.*)', (req, res) => {
+    app.get('/:any*', (req, res) => {
         res.sendFile(path.join(distPath, 'index.html'));
     });
 } else {
