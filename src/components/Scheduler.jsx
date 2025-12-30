@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import SchedulerEngine from '../utils/SchedulerEngine';
 import { radioStations } from '../data/radioStations';
+import { systemSchedules } from '../data/systemSchedules';
 import './Scheduler.css';
 
 const Scheduler = () => {
@@ -19,7 +19,9 @@ const Scheduler = () => {
     }, []);
 
     const loadSchedules = () => {
-        setSchedules(SchedulerEngine.getSchedules());
+        const localSchedules = SchedulerEngine.getSchedules();
+        // Merge system schedules with local ones
+        setSchedules([...systemSchedules.map(s => ({ ...s, enabled: true })), ...localSchedules]);
     };
 
     const handleSubmit = (e) => {
@@ -168,8 +170,11 @@ const Scheduler = () => {
                     schedules.map(schedule => (
                         <div key={schedule.id} className={`schedule-card ${!schedule.enabled ? 'disabled' : ''}`}>
                             <div className="schedule-info">
-                                <h3>{schedule.name}</h3>
-                                <p className="schedule-station">{schedule.stationName}</p>
+                                <div className="schedule-title-row">
+                                    <h3>{schedule.name}</h3>
+                                    {schedule.isLocked && <span className="lock-tag" title="Always-on Cloud Schedule">🔒 Locked</span>}
+                                </div>
+                                <p className="schedule-station">{schedule.stationName || radioStations.find(s => s.id === schedule.stationId)?.title}</p>
                                 <div className="schedule-details">
                                     <span className="schedule-time">🕐 {schedule.time}</span>
                                     <span className="schedule-duration">⏱️ {formatDurationHelper(schedule.duration)}</span>
@@ -184,20 +189,28 @@ const Scheduler = () => {
                             </div>
 
                             <div className="schedule-actions">
-                                <button
-                                    className={`toggle-btn ${schedule.enabled ? 'enabled' : ''}`}
-                                    onClick={() => handleToggle(schedule.id)}
-                                    title={schedule.enabled ? 'Disable' : 'Enable'}
-                                >
-                                    {schedule.enabled ? '🔔' : '🔕'}
-                                </button>
-                                <button
-                                    className="delete-btn"
-                                    onClick={() => handleDelete(schedule.id)}
-                                    title="Delete"
-                                >
-                                    🗑️
-                                </button>
+                                {!schedule.isLocked ? (
+                                    <>
+                                        <button
+                                            className={`toggle-btn ${schedule.enabled ? 'enabled' : ''}`}
+                                            onClick={() => handleToggle(schedule.id)}
+                                            title={schedule.enabled ? 'Disable' : 'Enable'}
+                                        >
+                                            {schedule.enabled ? '🔔' : '🔕'}
+                                        </button>
+                                        <button
+                                            className="delete-btn"
+                                            onClick={() => handleDelete(schedule.id)}
+                                            title="Delete"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="locked-action">
+                                        ☁️ Server-Active
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))

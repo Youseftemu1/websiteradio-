@@ -1,12 +1,6 @@
-/**
- * Standalone Radio Recorder for Supabase Cloud Hosting
- */
-
-import path from 'path';
-import axios from 'axios';
-import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import process from 'process';
+import { systemSchedules } from '../src/data/systemSchedules.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -17,24 +11,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Service role is ne
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
 // -- CONFIGURATION --
-const schedules = [
-    {
-        name: 'Hala FM Tech News',
-        stationId: '2',
-        url: 'https://hala-alrayamedia.radioca.st/;',
-        time: '13:00', // 24h format
-        days: [0, 1, 2, 3, 4, 5, 6], // Everyday
-        duration: 1800 // 30 minutes in seconds
-    },
-    {
-        name: 'Hala FM Daily Short',
-        stationId: '2',
-        url: 'https://hala-alrayamedia.radioca.st/;',
-        time: '12:57', // 24h format
-        days: [0, 1, 2, 3, 4, 5, 6], // Everyday
-        duration: 600 // 10 minutes
-    }
-];
+const schedules = [...systemSchedules];
 
 async function uploadToSupabase(buffer, filename, schedule, duration) {
     if (!supabase) {
