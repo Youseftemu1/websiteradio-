@@ -96,7 +96,15 @@ async function recordStream(schedule) {
             }
         }).then(resp => {
             console.log(`[${new Date().toLocaleTimeString()}] Stream connection established for ${schedule.name}`);
+            let isFirstChunk = true;
             resp.data.on('data', (chunk) => {
+                if (isFirstChunk) {
+                    isFirstChunk = false;
+                    const head = chunk.slice(0, 10).toString();
+                    if (head.includes('#EXTM3U')) {
+                        console.error(`CRITICAL: ${schedule.name} URL is an M3U8 playlist, not an audio stream. This will fail.`);
+                    }
+                }
                 buffer = Buffer.concat([buffer, chunk]);
             });
             resp.data.on('error', (err) => {
