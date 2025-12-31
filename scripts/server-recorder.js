@@ -167,6 +167,8 @@ export function startRecorder() {
     // Initial cleanup
     cleanupOldRecordings();
 
+    console.log(`[${new Date().toLocaleString()}] Server Timezone Check: Server thinks it is currently ${new Date().toLocaleTimeString()}`);
+
     // Check schedules every minute
     setInterval(() => {
         const now = new Date();
@@ -177,6 +179,11 @@ export function startRecorder() {
         // Run cleanup at 3:00 AM
         if (currentH === 3 && currentM === 0) {
             cleanupOldRecordings();
+        }
+
+        // Log time every hour at minute 0
+        if (currentM === 0 && currentH !== 3) {
+            console.log(`[${now.toLocaleTimeString()}] System Pulse: Checking schedules...`);
         }
 
         schedules.forEach(schedule => {

@@ -8,5 +8,15 @@ export const systemSchedules = [
         days: [0, 1, 2, 3, 4, 5, 6],
         duration: 600,
         isLocked: true
+    },
+    {
+        id: 'sys-hala-test-4pm',
+        name: 'Hala FM 4PM Test',
+        stationId: '2',
+        url: 'https://hala-alrayamedia.radioca.st/;',
+        time: '16:00',
+        days: [0, 1, 2, 3, 4, 5, 6],
+        duration: 600,
+        isLocked: true
     }
 ];
