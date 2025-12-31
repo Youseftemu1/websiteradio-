@@ -22,8 +22,8 @@ app.get('/api/recorder-logs', (req, res) => {
     res.json(recorderStatus);
 });
 
-// Handle React routing, return all requests to React app
-app.get('*', (req, res) => {
+// Handle React routing, return all requests to React app - MUST BE LAST
+app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
