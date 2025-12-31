@@ -13,18 +13,33 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
+// -- DIAGNOSTICS & STATUS --
+export const recorderStatus = {
+    startedAt: new Date().toISOString(),
+    logs: [],
+    lastAction: 'Initializing...',
+    supabaseConnected: !!supabase
+};
+
+function log(msg) {
+    const timestamped = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    console.log(timestamped);
+    recorderStatus.logs.push(timestamped);
+    if (recorderStatus.logs.length > 50) recorderStatus.logs.shift(); // Keep last 50
+    recorderStatus.lastAction = msg;
+}
+
 // -- CONFIGURATION --
 const schedules = [...systemSchedules];
 
 async function uploadToSupabase(buffer, filename, schedule, duration) {
-    console.log(`[${new Date().toLocaleTimeString()}] UPLOAD START: ${filename} (${buffer.length} bytes)`);
+    log(`UPLOAD START: ${filename} (${buffer.length} bytes)`);
     if (!supabase) {
-        console.error('CRITICAL: Supabase client is NULL. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).');
+        log('CRITICAL: Supabase client is NULL. Check environment variables.');
         return;
     }
 
     try {
-        // 1. Upload to Storage
         const { data: storageData, error: storageError } = await supabase.storage
             .from('recordings')
             .upload(`${filename}`, buffer, {
@@ -33,18 +48,16 @@ async function uploadToSupabase(buffer, filename, schedule, duration) {
             });
 
         if (storageError) {
-            console.error(`STORAGE UPLOAD ERROR for ${filename}:`, storageError.message);
+            log(`STORAGE UPLOAD ERROR for ${filename}: ${storageError.message}`);
             throw storageError;
         }
 
-        // 2. Get Public URL
         const { data: urlData } = supabase.storage
             .from('recordings')
             .getPublicUrl(filename);
 
         const publicUrl = urlData.publicUrl;
 
-        // 3. Save Metadata to DB
         const { error: dbError } = await supabase
             .from('recordings')
             .insert({
@@ -57,13 +70,13 @@ async function uploadToSupabase(buffer, filename, schedule, duration) {
             });
 
         if (dbError) {
-            console.error(`DB INSERT ERROR for ${filename}:`, dbError.message);
+            log(`DB INSERT ERROR for ${filename}: ${dbError.message}`);
             throw dbError;
         }
 
-        console.log(`[${new Date().toLocaleTimeString()}] ARCHIVE SUCCESS: ${filename}`);
+        log(`ARCHIVE SUCCESS: ${filename}`);
     } catch (error) {
-        console.error('Supabase Integration Error:', error.message);
+        log(`Supabase Integration Error: ${error.message}`);
     }
 }
 
@@ -71,8 +84,7 @@ async function recordStream(schedule) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `${schedule.name.replace(/\s+/g, '_')}_${timestamp}.mp3`;
 
-    console.log(`[${new Date().toLocaleTimeString()}] Starting cloud recording: ${schedule.name}`);
-
+    log(`Starting cloud recording: ${schedule.name}`);
     const startTime = Date.now();
 
     if (schedule.url.includes('.m3u8')) {
@@ -82,13 +94,13 @@ async function recordStream(schedule) {
     return new Promise((resolve) => {
         let buffer = Buffer.alloc(0);
         const timeout = setTimeout(async () => {
-            console.log(`[${new Date().toLocaleTimeString()}] Window complete: ${schedule.name}`);
+            log(`Window complete: ${schedule.name}`);
             const duration = Math.floor((Date.now() - startTime) / 1000);
 
             if (buffer.length === 0) {
-                console.error(`ERROR: No data collected for ${schedule.name}.`);
+                log(`ERROR: No data collected for ${schedule.name}.`);
             } else {
-                console.log(`[${new Date().toLocaleTimeString()}] Ready to upload ${buffer.length} bytes for ${schedule.name}`);
+                log(`Ready to upload ${buffer.length} bytes for ${schedule.name}`);
                 await uploadToSupabase(buffer, filename, schedule, duration);
             }
             resolve();
@@ -103,7 +115,7 @@ async function recordStream(schedule) {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
         }).then(resp => {
-            console.log(`[${new Date().toLocaleTimeString()}] Connection established: ${schedule.name}`);
+            log(`Connection established: ${schedule.name}`);
             let isFirstChunk = true;
             let bytesReceived = 0;
 
@@ -113,7 +125,7 @@ async function recordStream(schedule) {
                     isFirstChunk = false;
                     const head = chunk.slice(0, 10).toString();
                     if (head.includes('#EXTM3U')) {
-                        console.log(`[${new Date().toLocaleTimeString()}] HLS detected in stream for ${schedule.name}. Switching...`);
+                        log(`HLS detected in stream for ${schedule.name}. Switching...`);
                         clearTimeout(timeout);
                         recordHlsStream(schedule, startTime, filename).then(resolve);
                         resp.data.destroy();
@@ -123,19 +135,19 @@ async function recordStream(schedule) {
                 buffer = Buffer.concat([buffer, chunk]);
             });
             resp.data.on('error', (err) => {
-                console.error(`[${new Date().toLocaleTimeString()}] Stream error ${schedule.name}:`, err.message);
+                log(`Stream error ${schedule.name}: ${err.message}`);
             });
             resp.data.on('end', () => {
-                console.log(`[${new Date().toLocaleTimeString()}] Stream ended by server: ${schedule.name}. Bytes: ${bytesReceived}`);
+                log(`Stream ended by server: ${schedule.name}. Bytes: ${bytesReceived}`);
             });
         }).catch(err => {
-            console.error(`[${new Date().toLocaleTimeString()}] Connection failed ${schedule.name}:`, err.message);
+            log(`Connection failed ${schedule.name}: ${err.message}`);
         });
     });
 }
 
 async function recordHlsStream(schedule, startTime, filename) {
-    console.log(`[${new Date().toLocaleTimeString()}] HLS Active: ${schedule.name}`);
+    log(`HLS Local Recorder Active: ${schedule.name}`);
     let buffer = Buffer.alloc(0);
     const downloadedSegments = new Set();
     const endTime = startTime + (schedule.duration * 1000);
@@ -164,11 +176,11 @@ async function recordHlsStream(schedule, startTime, filename) {
                     buffer = Buffer.concat([buffer, Buffer.from(segResp.data)]);
                     downloadedSegments.add(segment);
                 } catch (segErr) {
-                    // Segment fail
+                    // Fail silent, retry next pass
                 }
             }
         } catch (err) {
-            console.error(`[${new Date().toLocaleTimeString()}] HLS fetch error ${schedule.name}:`, err.message);
+            log(`HLS fetch error ${schedule.name}: ${err.message}`);
         }
 
         if (Date.now() < endTime) {
@@ -178,10 +190,10 @@ async function recordHlsStream(schedule, startTime, filename) {
 
     const duration = Math.floor((Date.now() - startTime) / 1000);
     if (buffer.length > 0) {
-        console.log(`[${new Date().toLocaleTimeString()}] HLS Complete: ${schedule.name}. Bytes: ${buffer.length}`);
+        log(`HLS Complete: ${schedule.name}. Bytes: ${buffer.length}`);
         await uploadToSupabase(buffer, filename, schedule, duration);
     } else {
-        console.error(`[${new Date().toLocaleTimeString()}] HLS FAILED: ${schedule.name} - 0 bytes.`);
+        log(`HLS FAILED: ${schedule.name} - 0 bytes.`);
     }
 }
 
@@ -194,17 +206,15 @@ async function cleanupOldRecordings() {
             const filenames = oldRecords.map(r => r.url.split('/').pop());
             await supabase.storage.from('recordings').remove(filenames);
             await supabase.from('recordings').delete().in('id', oldRecords.map(r => r.id));
-            console.log(`Cleaned up ${oldRecords.length} old recordings.`);
+            log(`Cleaned up ${oldRecords.length} old recordings.`);
         }
     } catch (e) { }
 }
 
 export function startRecorder() {
-    console.log('--- Radio Cloud Recorder v2 (Diagnostic Mode) ---');
-    console.log('SUPABASE_URL present:', !!supabaseUrl);
-    console.log('SUPABASE_SERVICE_ROLE_KEY present:', !!supabaseKey);
-    console.log('Active Schedules Loaded:', schedules.length);
-    schedules.forEach(s => console.log(` - [${s.time}] ${s.name}`));
+    log('--- Radio Cloud Recorder v2.1 ---');
+    log(`SUPABASE_URL present: ${!!supabaseUrl}`);
+    log(`Active Schedules: ${schedules.length}`);
 
     cleanupOldRecordings();
 
