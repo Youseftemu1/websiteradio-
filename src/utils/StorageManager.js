@@ -57,6 +57,12 @@ export const deleteOldRecordings = async (days = 30) => {
     return oldRecordings.length;
 };
 
+// Delete ALL recordings
+export const deleteAllLocalRecordings = async () => {
+    const db = await initDB();
+    await db.clear(STORE_NAME);
+};
+
 // Get storage usage
 export const getStorageUsage = async () => {
     const recordings = await getAllRecordings();

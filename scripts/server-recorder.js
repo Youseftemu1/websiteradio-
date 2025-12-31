@@ -174,12 +174,18 @@ export function startRecorder() {
 
     console.log(`[${new Date().toLocaleString()}] Server Timezone Check: Server thinks it is currently ${new Date().toLocaleTimeString()}`);
 
-    // Check schedules every minute
+    let lastTriggerTime = null;
+
+    // Check schedules every 30 seconds for better precision
     setInterval(() => {
         const now = new Date();
         const currentH = now.getHours();
         const currentM = now.getMinutes();
         const currentDay = now.getDay();
+        const timeKey = `${currentH}:${currentM}`;
+
+        if (lastTriggerTime === timeKey) return; // Already triggered this minute
+        lastTriggerTime = timeKey;
 
         // Run cleanup at 3:00 AM
         if (currentH === 3 && currentM === 0) {

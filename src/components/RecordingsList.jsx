@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllRecordings, deleteRecording, getStorageUsage } from '../utils/StorageManager';
+import { getAllRecordings, deleteRecording, getStorageUsage, deleteAllLocalRecordings } from '../utils/StorageManager';
 import { formatBytes, formatDuration, formatDate, getDownloadFilename } from '../utils/formatters';
 import { saveAs } from 'file-saver';
 import { supabase } from '../utils/supabaseClient';
@@ -74,6 +74,29 @@ const RecordingsList = ({ refreshTrigger }) => {
         }
     };
 
+    const handleDeleteAll = async () => {
+        if (confirm('Are you ABSOLUTELY sure? This will delete ALL local and cloud recordings forever.')) {
+            try {
+                // 1. Delete all local
+                await deleteAllLocalRecordings();
+
+                // 2. Delete all cloud
+                const { data: cloudFiles } = await supabase.storage.from('recordings').list();
+                if (cloudFiles && cloudFiles.length > 0) {
+                    const names = cloudFiles.map(f => f.name);
+                    await supabase.storage.from('recordings').remove(names);
+                }
+                // Delete metadata from DB
+                await supabase.from('recordings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+                loadRecordings();
+            } catch (error) {
+                console.error('Failed to delete all:', error);
+                loadRecordings();
+            }
+        }
+    };
+
     const handleDownload = (recording) => {
         const filename = getDownloadFilename(recording.stationName, recording.date);
         if (recording.isCloud) {
@@ -96,6 +119,11 @@ const RecordingsList = ({ refreshTrigger }) => {
                 <p className="storage-text">
                     Storage Used: <strong>{formatBytes(storageUsed)}</strong>
                 </p>
+                {recordings.length > 0 && (
+                    <button className="delete-all-btn" onClick={handleDeleteAll}>
+                        Clear All
+                    </button>
+                )}
             </div>
 
             {recordings.length === 0 ? (
