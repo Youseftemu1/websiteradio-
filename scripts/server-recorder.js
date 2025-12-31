@@ -85,9 +85,15 @@ async function recordStream(schedule) {
 
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(async () => {
-                console.log(`[${new Date().toLocaleTimeString()}] Recording finished: ${schedule.name}`);
+                console.log(`[${new Date().toLocaleTimeString()}] Recording window complete: ${schedule.name}`);
                 const duration = Math.floor((Date.now() - startTime) / 1000);
-                await uploadToSupabase(buffer, filename, schedule, duration);
+
+                if (buffer.length === 0) {
+                    console.error(`ERROR: Recording ${schedule.name} failed - no data collected in buffer.`);
+                } else {
+                    console.log(`[${new Date().toLocaleTimeString()}] Collected ${buffer.length} bytes for ${schedule.name}. Starting upload...`);
+                    await uploadToSupabase(buffer, filename, schedule, duration);
+                }
                 resolve();
             }, schedule.duration * 1000);
 
@@ -95,16 +101,25 @@ async function recordStream(schedule) {
             axios({
                 method: 'get',
                 url: schedule.url,
-                responseType: 'stream'
+                responseType: 'stream',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
             }).then(resp => {
+                console.log(`[${new Date().toLocaleTimeString()}] Stream connection established for ${schedule.name}`);
                 resp.data.on('data', (chunk) => {
                     buffer = Buffer.concat([buffer, chunk]);
                 });
                 resp.data.on('error', (err) => {
+                    console.error(`[${new Date().toLocaleTimeString()}] Stream error for ${schedule.name}:`, err.message);
                     clearTimeout(timeout);
                     reject(err);
                 });
+                resp.data.on('end', () => {
+                    console.log(`[${new Date().toLocaleTimeString()}] Stream ended early by server for ${schedule.name}`);
+                });
             }).catch(err => {
+                console.error(`[${new Date().toLocaleTimeString()}] Connection failed for ${schedule.name}:`, err.message);
                 clearTimeout(timeout);
                 reject(err);
             });

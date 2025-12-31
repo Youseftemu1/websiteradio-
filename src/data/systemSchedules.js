@@ -10,13 +10,23 @@ export const systemSchedules = [
         isLocked: true
     },
     {
-        id: 'sys-hala-test-4pm',
-        name: 'Hala FM 4:20PM Test',
+        id: 'sys-hala-test-455pm',
+        name: 'Hala FM 4:55PM Test',
         stationId: '2',
         url: 'https://hala-alrayamedia.radioca.st/;',
-        time: '16:20',
+        time: '16:55',
         days: [0, 1, 2, 3, 4, 5, 6],
-        duration: 240,
+        duration: 300,
+        isLocked: true
+    },
+    {
+        id: 'sys-hala-test-5pm',
+        name: 'Hala FM 5:00PM Test',
+        stationId: '2',
+        url: 'https://hala-alrayamedia.radioca.st/;',
+        time: '17:00',
+        days: [0, 1, 2, 3, 4, 5, 6],
+        duration: 300,
         isLocked: true
     }
 ];
