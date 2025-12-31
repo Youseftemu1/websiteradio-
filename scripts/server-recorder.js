@@ -68,10 +68,15 @@ async function recordStream(schedule) {
 
     console.log(`[${new Date().toLocaleTimeString()}] Starting cloud recording: ${schedule.name}`);
 
-    let buffer = Buffer.alloc(0);
     const startTime = Date.now();
 
+    // Check if URL is HLS directly or if it returns M3U8 in first chunk
+    if (schedule.url.includes('.m3u8')) {
+        return recordHlsStream(schedule, startTime, filename);
+    }
+
     return new Promise((resolve) => {
+        let buffer = Buffer.alloc(0);
         const timeout = setTimeout(async () => {
             console.log(`[${new Date().toLocaleTimeString()}] Recording window complete: ${schedule.name}`);
             const duration = Math.floor((Date.now() - startTime) / 1000);
@@ -105,7 +110,12 @@ async function recordStream(schedule) {
                     isFirstChunk = false;
                     const head = chunk.slice(0, 10).toString();
                     if (head.includes('#EXTM3U')) {
-                        console.error(`[${new Date().toLocaleTimeString()}] CRITICAL ERROR: ${schedule.name} URL is an M3U8 playlist! Recorder cannot process HLS playlists directly. URL: ${schedule.url}`);
+                        console.log(`[${new Date().toLocaleTimeString()}] Detected HLS content for ${schedule.name} in initial chunk. Switching to HLS handler.`);
+                        clearTimeout(timeout);
+                        // Start HLS handler and resolve its promise
+                        recordHlsStream(schedule, startTime, filename).then(resolve);
+                        resp.data.destroy(); // Stop the current stream
+                        return;
                     }
                 }
                 buffer = Buffer.concat([buffer, chunk]);
@@ -120,6 +130,58 @@ async function recordStream(schedule) {
             console.error(`[${new Date().toLocaleTimeString()}] Connection attempt failed for ${schedule.name}:`, err.message);
         });
     });
+}
+
+async function recordHlsStream(schedule, startTime, filename) {
+    console.log(`[${new Date().toLocaleTimeString()}] HLS Recorder active for ${schedule.name}`);
+    let buffer = Buffer.alloc(0);
+    const downloadedSegments = new Set();
+    const endTime = startTime + (schedule.duration * 1000);
+
+    while (Date.now() < endTime) {
+        try {
+            const playlistResp = await axios.get(schedule.url);
+            const playlist = playlistResp.data;
+            const baseUrl = schedule.url.substring(0, schedule.url.lastIndexOf('/') + 1);
+
+            const lines = playlist.split('\n');
+            const segments = lines.filter(line => line.trim() && !line.startsWith('#'));
+
+            for (const segment of segments) {
+                if (downloadedSegments.has(segment)) continue;
+                if (Date.now() >= endTime) break;
+
+                const segmentUrl = segment.startsWith('http') ? segment : baseUrl + segment;
+                try {
+                    const segResp = await axios({
+                        method: 'get',
+                        url: segmentUrl,
+                        responseType: 'arraybuffer',
+                        timeout: 5000
+                    });
+                    buffer = Buffer.concat([buffer, Buffer.from(segResp.data)]);
+                    downloadedSegments.add(segment);
+                } catch (segErr) {
+                    // Segment fetch failed, will retry next pass
+                }
+            }
+        } catch (err) {
+            console.error(`[${new Date().toLocaleTimeString()}] HLS Playlist fetch error for ${schedule.name}:`, err.message);
+        }
+
+        // Wait 3 seconds between playlist refreshes
+        if (Date.now() < endTime) {
+            await new Promise(r => setTimeout(r, 3000));
+        }
+    }
+
+    const duration = Math.floor((Date.now() - startTime) / 1000);
+    if (buffer.length > 0) {
+        console.log(`[${new Date().toLocaleTimeString()}] HLS Recording complete for ${schedule.name}. Collected ${buffer.length} bytes.`);
+        await uploadToSupabase(buffer, filename, schedule, duration);
+    } else {
+        console.error(`[${new Date().toLocaleTimeString()}] HLS Recording FAILED for ${schedule.name} - no data collected.`);
+    }
 }
 
 async function cleanupOldRecordings() {
