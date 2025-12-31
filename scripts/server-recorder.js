@@ -97,24 +97,27 @@ async function recordStream(schedule) {
         }).then(resp => {
             console.log(`[${new Date().toLocaleTimeString()}] Stream connection established for ${schedule.name}`);
             let isFirstChunk = true;
+            let bytesReceived = 0;
+
             resp.data.on('data', (chunk) => {
+                bytesReceived += chunk.length;
                 if (isFirstChunk) {
                     isFirstChunk = false;
                     const head = chunk.slice(0, 10).toString();
                     if (head.includes('#EXTM3U')) {
-                        console.error(`CRITICAL: ${schedule.name} URL is an M3U8 playlist, not an audio stream. This will fail.`);
+                        console.error(`[${new Date().toLocaleTimeString()}] CRITICAL ERROR: ${schedule.name} URL is an M3U8 playlist! Recorder cannot process HLS playlists directly. URL: ${schedule.url}`);
                     }
                 }
                 buffer = Buffer.concat([buffer, chunk]);
             });
             resp.data.on('error', (err) => {
-                console.error(`[${new Date().toLocaleTimeString()}] Stream error for ${schedule.name}:`, err.message);
+                console.error(`[${new Date().toLocaleTimeString()}] Stream error for ${schedule.name} after ${bytesReceived} bytes:`, err.message);
             });
             resp.data.on('end', () => {
-                console.log(`[${new Date().toLocaleTimeString()}] Stream ended by server for ${schedule.name}`);
+                console.log(`[${new Date().toLocaleTimeString()}] Stream ended by server for ${schedule.name}. Received ${bytesReceived} bytes total.`);
             });
         }).catch(err => {
-            console.error(`[${new Date().toLocaleTimeString()}] Connection failed for ${schedule.name}:`, err.message);
+            console.error(`[${new Date().toLocaleTimeString()}] Connection attempt failed for ${schedule.name}:`, err.message);
         });
     });
 }

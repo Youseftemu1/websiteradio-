@@ -68,7 +68,8 @@ const RecordingsList = ({ refreshTrigger }) => {
                 }
                 loadRecordings();
             } catch (error) {
-                console.error('Failed to delete recording:', error);
+                console.error('Failed to delete recording:', error.message || error);
+                alert(`Delete failed: ${error.message || 'Unknown error'}. Check Supabase RLS policies.`);
                 loadRecordings();
             }
         }
