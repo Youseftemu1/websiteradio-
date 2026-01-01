@@ -151,10 +151,13 @@ async function recordHlsStream(schedule, startTime, filename) {
     let buffer = Buffer.alloc(0);
     const downloadedSegments = new Set();
     const endTime = startTime + (schedule.duration * 1000);
+    const commonHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    };
 
     while (Date.now() < endTime) {
         try {
-            const playlistResp = await axios.get(schedule.url);
+            const playlistResp = await axios.get(schedule.url, { headers: commonHeaders, timeout: 10000 });
             const playlist = playlistResp.data;
             const baseUrl = schedule.url.substring(0, schedule.url.lastIndexOf('/') + 1);
 
@@ -171,7 +174,8 @@ async function recordHlsStream(schedule, startTime, filename) {
                         method: 'get',
                         url: segmentUrl,
                         responseType: 'arraybuffer',
-                        timeout: 5000
+                        timeout: 10000,
+                        headers: commonHeaders
                     });
                     buffer = Buffer.concat([buffer, Buffer.from(segResp.data)]);
                     downloadedSegments.add(segment);

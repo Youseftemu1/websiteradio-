@@ -44,11 +44,11 @@ export const systemSchedules = [
         isLocked: true
     },
     {
-        id: 'sys-jrtv-test-2200',
-        name: 'JRTV 10:00 PM Test (HLS)',
+        id: 'sys-jrtv-test-2240',
+        name: 'JRTV 10:40 PM Test (HLS Hardened)',
         stationId: '8',
         url: 'https://jrtv-live.ercdn.net/jrradio/jordanradiovideo.m3u8',
-        time: '22:00',
+        time: '22:40',
         days: [0, 1, 2, 3, 4, 5, 6],
         duration: 300,
         isLocked: true
