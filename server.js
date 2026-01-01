@@ -22,7 +22,11 @@ app.get('/api/recorder-logs', (req, res) => {
     res.json(recorderStatus);
 });
 
-// Handle React routing, return all requests to React app - MUST BE LAST
+// --- CRITICAL DEPLOYMENT SETTING ---
+// Handle React routing (SPA fallback). MUST BE LAST.
+// WARNING: Do NOT change this to app.get('*') or app.get(/.*/).
+// Those will CRASH on Render/Node 22 due to strict Express 5 path-to-regexp rules.
+// Using app.use() bypasses the path parser and is 100% stable.
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });

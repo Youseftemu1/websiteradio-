@@ -1,10 +1,10 @@
 // SYSTEM SCHEDULES - DO NOT DELETE
 // These schedules are managed by the server-side recorder.
-// Testing parallel recording at 12:45 AM Amman time.
+// Production Schedules for Hala FM and JRTV.
 
 export const systemSchedules = [
     {
-        id: 'sys-hala-short',
+        id: 'sys-hala-1257',
         name: 'Hala FM Daily Short',
         stationId: '2',
         url: 'https://hala-alrayamedia.radioca.st/;',
@@ -14,33 +14,33 @@ export const systemSchedules = [
         isLocked: true
     },
     {
-        id: 'sys-hala-parallel-0045',
-        name: 'Hala FM 12:45 AM Parallel',
+        id: 'sys-hala-1900',
+        name: 'Hala FM Evening Short',
         stationId: '2',
         url: 'https://hala-alrayamedia.radioca.st/;',
-        time: '00:45',
+        time: '19:00',
         days: [0, 1, 2, 3, 4, 5, 6],
-        duration: 300,
+        duration: 600,
         isLocked: true
     },
     {
-        id: 'sys-jhusna-parallel-0045',
-        name: 'JHusna FM 12:45 AM Parallel',
-        stationId: '18',
-        url: 'https://s2.voscast.com:10445/stream',
-        time: '00:45',
-        days: [0, 1, 2, 3, 4, 5, 6],
-        duration: 300,
-        isLocked: true
-    },
-    {
-        id: 'sys-jrtv-parallel-0045',
-        name: 'JRTV 12:45 AM Parallel (HLS Fix)',
+        id: 'sys-jrtv-1359',
+        name: 'JRTV Afternoon Service',
         stationId: '8',
         url: 'https://jrtv-live.ercdn.net/jrradio/jordanradiovideo.m3u8',
-        time: '00:45',
+        time: '13:59',
         days: [0, 1, 2, 3, 4, 5, 6],
-        duration: 300,
+        duration: 1860, // 31 minutes
+        isLocked: true
+    },
+    {
+        id: 'sys-jrtv-2000',
+        name: 'JRTV Evening Service',
+        stationId: '8',
+        url: 'https://jrtv-live.ercdn.net/jrradio/jordanradiovideo.m3u8',
+        time: '20:00',
+        days: [0, 1, 2, 3, 4, 5, 6],
+        duration: 600,
         isLocked: true
     }
 ];
